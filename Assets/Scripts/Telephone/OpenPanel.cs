@@ -1,16 +1,16 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Open_Panel : MonoBehaviour
+public class PanelOpener : MonoBehaviour
 {
     public GameObject panel; // Перетащите сюда вашу панель в инспекторе
     void Start()
     {
-        //panel.SetActive(false); // Скрыть панель в начале
+        panel.SetActive(false); // Скрыть панель в начале
     }
 
-    public void TogglePanel() // Метод, который будет вызываться при нажатии на кнопку
+    public void OpenPanel() // Метод, который будет вызываться при нажатии на кнопку
     {
-        panel.SetActive(!panel.activeSelf);
+        panel.SetActive(true);
     }
 }

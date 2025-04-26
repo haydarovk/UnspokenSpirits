@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Close_Panel : MonoBehaviour
+public class PanelCloser : MonoBehaviour
 {
     private GameObject panel; // —сылка на панель
 
