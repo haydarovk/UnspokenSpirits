@@ -4,15 +4,14 @@ using UnityEngine;
 
 public class SequenceController : MonoBehaviour
 {
+    public GameObject dialoguePanel; // Панель диалогов (из Dialogues)
+    public GameObject choiceButtonPanel; // Панель кнопок (из Dialogues)
     public GameObject firstGameObject;
     public GameObject secondGameObject;
     public GameObject thirdGameObject;
-    public GameObject panelToClose;
+    public GameObject phonePanel;
 
     private bool waitingForInput = false;
-
-    public GameObject textBlockToShow; // Добавляем ссылку на текстовый блок
-
 
     void Start()
     {
@@ -23,7 +22,7 @@ public class SequenceController : MonoBehaviour
     IEnumerator ControlSequence()
     {
         // Проверяем на null ссылки на объекты
-        if (firstGameObject == null || secondGameObject == null || thirdGameObject == null || panelToClose == null)
+        if (firstGameObject == null || secondGameObject == null || thirdGameObject == null || phonePanel == null)
         {
             Debug.LogError("Убедитесь, что все объекты назначены в инспекторе!");
             yield break; // Прекращаем выполнение корутины
@@ -43,7 +42,7 @@ public class SequenceController : MonoBehaviour
         secondGameObject.SetActive(true);
 
         // Ждем немного, затем выключаем первый и второй объекты
-        yield return new WaitForSeconds(17.0f);
+        yield return new WaitForSeconds(7.0f);
         firstGameObject.SetActive(false);
         secondGameObject.SetActive(false);
 
@@ -55,8 +54,18 @@ public class SequenceController : MonoBehaviour
         yield return new WaitUntil(() => Input.GetMouseButtonDown(0)); // Ждем, пока не будет нажата левая кнопка мыши
 
         // Когда кнопка нажата, закрываем панель
-        panelToClose.SetActive(false);
-        textBlockToShow.SetActive(true);
+        phonePanel.SetActive(false);
+
+        // Активируем панель диалогов и кнопок
+        if (dialoguePanel != null && choiceButtonPanel != null)
+        {
+            dialoguePanel.SetActive(true);
+            choiceButtonPanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("Не назначены dialoguePanel или choiceButtonPanel!");
+        }
 
         waitingForInput = false;
         Debug.Log("Последовательность завершена.");

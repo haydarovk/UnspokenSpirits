@@ -324,7 +324,6 @@ public class TextTyper : MonoBehaviour
             yield return null;
         }
     }
-
     IEnumerator FadeOutInitialImage(CanvasGroup cg, float duration)
     {
         float time = 0;
@@ -340,7 +339,8 @@ public class TextTyper : MonoBehaviour
     // Метод для скрытия панели текста и отображения панели телефона
     void HideTextPanelAndShowPhonePanel()
     {
-        phonePanel.SetActive(true); 
+        phonePanel.SetActive(true);
         textPanel.SetActive(false);
     }
+
 }
