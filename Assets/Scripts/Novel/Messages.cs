@@ -35,15 +35,15 @@ public class SequenceController : MonoBehaviour
         thirdGameObject.SetActive(false);
 
         // Включаем первый объект через заданное время
-        yield return new WaitForSeconds(1.5f);
+        yield return WaitForInputOrTime(1.5f);
         firstGameObject.SetActive(true);
 
         // Включаем второй объект через заданное время после включения первого
-        yield return new WaitForSeconds(3.5f);
+        yield return WaitForInputOrTime(3.5f);
         secondGameObject.SetActive(true);
 
         // Ждем немного, затем выключаем первый и второй объекты
-        yield return new WaitForSeconds(17.0f);
+        yield return WaitForInputOrTime(17.0f);
         firstGameObject.SetActive(false);
         secondGameObject.SetActive(false);
 
@@ -62,13 +62,30 @@ public class SequenceController : MonoBehaviour
         Debug.Log("Последовательность завершена.");
     }
 
-    void Update()
+    // Универсальный метод ожидания нажатия кнопки или времени
+    IEnumerator WaitForInputOrTime(float time)
     {
-        // Проверяем нажатие кнопки только если мы находимся в состоянии ожидания ввода
-        if (waitingForInput && Input.GetMouseButtonDown(0))
+        float timer = 0f;
+
+        while (timer < time)
         {
-            // Код для закрытия панели уже находится в корутине ControlSequence, поэтому здесь ничего не нужно делать.
-            // Корутина WaitUntil сама обнаружит нажатие кнопки и продолжит выполнение.
+            if (Input.GetMouseButtonDown(0))    //|| timer==time)
+            {
+                yield return null; // Даем Unity время обработать событие
+                yield break; // Выходим из корутины, если нажата кнопка
+            }
+
+            timer += Time.deltaTime;
+            yield return null;
         }
     }
+    //void Update()
+    //{
+    //    // Проверяем нажатие кнопки только если мы находимся в состоянии ожидания ввода
+    //    if (waitingForInput && Input.GetMouseButtonDown(0))
+    //    {
+    //        // Код для закрытия панели уже находится в корутине ControlSequence, поэтому здесь ничего не нужно делать.
+    //        // Корутина WaitUntil сама обнаружит нажатие кнопки и продолжит выполнение.
+    //    }
+    //}
 }
