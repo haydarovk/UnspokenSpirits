@@ -1,55 +1,218 @@
-using System.Collections;
+п»їusing System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
+using Ink.Runtime;
+using UnityEngine.SceneManagement;
 
-public class TextTyperTMP : MonoBehaviour
+public class NovelTextSystem : MonoBehaviour
 {
-    public TMP_Text textComponent; // Ссылка на компонент TextMeshPro Text
-    public string fullText; // Текст, который нужно вывести посимвольно
-    public float typeSpeed = 0.05f; // Задержка между выводом символов
+    [Header("UI References")]
+    public TMP_Text dialogueText; // пїЅпїЅпїЅпїЅпїЅ пїЅ TextPanel2
+    public TMP_Text nameText;     // пїЅпїЅпїЅпїЅпїЅ пїЅ Character (пїЅпїЅпїЅ)
+    public GameObject choiceButtonPanel; // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    public Button choiceButtonPrefab;    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
-    private string currentText = ""; // Текущий отображаемый текст
-    private bool isTyping = false; // Флаг, показывающий, идет ли сейчас вывод текста
+    [Header("Background Settings")]
+    public GameObject[] backgroundImages; // РњР°СЃСЃРёРІ С„РѕРЅРѕРІС‹С… РёР·РѕР±СЂР°Р¶РµРЅРёР№
+    private CanvasGroup[] backgroundCanvasGroups;
+    private int currentBackgroundIndex = 0;
+    public float backgroundFadeDuration = 1f;
+
+    [Header("INK File")]
+    public TextAsset inkJSONAsset;
+
+    [Header("Settings")]
+    public float typeSpeed = 0.05f;
+
+    private Story currentStory;
+    private bool isTyping = false;
+    private bool isChoosing = false;
 
     void Start()
     {
-        // Проверяем, что textComponent назначен
-        if (textComponent == null)
-        {
-            Debug.LogError("TextMeshPro Text Component не назначен! Пожалуйста, перетащите компонент TextMeshPro Text в поле Text Component в Inspector.");
-            enabled = false; // Отключаем скрипт, чтобы не было ошибок
-            return;
-        }
 
-        // Запускаем корутину для вывода текста посимвольно
-        StartCoroutine(TypeText());
+        InitializeBackgrounds();
+
+        currentStory = new Story(inkJSONAsset.text);
+
+        choiceButtonPanel.SetActive(false);
+
+        ContinueStory();
     }
 
-    IEnumerator TypeText()
+    void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (isTyping)
+            {
+                StopAllCoroutines();
+                dialogueText.text = currentStory.currentText;
+                isTyping = false;
+            }
+            else if (!isChoosing)
+            {
+                ContinueStory();
+            }
+        }
+    }
+
+    void InitializeBackgrounds()
+    {
+        backgroundCanvasGroups = new CanvasGroup[backgroundImages.Length];
+
+        for (int i = 0; i < backgroundImages.Length; i++)
+        {
+            // Р”РѕР±Р°РІР»СЏРµРј CanvasGroup РµСЃР»Рё РЅРµС‚
+            var canvasGroup = backgroundImages[i].GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
+            {
+                canvasGroup = backgroundImages[i].AddComponent<CanvasGroup>();
+            }
+
+            backgroundCanvasGroups[i] = canvasGroup;
+            backgroundImages[i].SetActive(i == 0); // РђРєС‚РёРІРёСЂСѓРµРј С‚РѕР»СЊРєРѕ РїРµСЂРІС‹Р№ С„РѕРЅ
+            canvasGroup.alpha = i == 0 ? 1 : 0;    // Р”РµР»Р°РµРј РІРёРґРёРјС‹Рј С‚РѕР»СЊРєРѕ РїРµСЂРІС‹Р№ С„РѕРЅ
+        }
+    }
+
+    IEnumerator ChangeBackground(int newIndex)
+    {
+        if (newIndex < 0 || newIndex >= backgroundImages.Length)
+        {
+            Debug.LogError("Invalid background index!");
+            yield break;
+        }
+
+        // РђРєС‚РёРІРёСЂСѓРµРј РЅРѕРІС‹Р№ С„РѕРЅ РїРµСЂРµРґ Р°РЅРёРјР°С†РёРµР№
+        backgroundImages[newIndex].SetActive(true);
+
+        float timer = 0;
+        CanvasGroup currentBG = backgroundCanvasGroups[currentBackgroundIndex];
+        CanvasGroup nextBG = backgroundCanvasGroups[newIndex];
+
+        while (timer < backgroundFadeDuration)
+        {
+            timer += Time.deltaTime;
+            float progress = timer / backgroundFadeDuration;
+
+            currentBG.alpha = 1 - progress;
+            nextBG.alpha = progress;
+
+            yield return null;
+        }
+
+        // Р”РµР°РєС‚РёРІРёСЂСѓРµРј СЃС‚Р°СЂС‹Р№ С„РѕРЅ РїРѕСЃР»Рµ Р°РЅРёРјР°С†РёРё
+        backgroundImages[currentBackgroundIndex].SetActive(false);
+        currentBackgroundIndex = newIndex;
+    }
+
+    void ContinueStory()
+    {
+        if (currentStory.canContinue)
+        {
+            string text = currentStory.Continue();
+
+            // РџСЂРѕРІРµСЂСЏРµРј РёР·РјРµРЅРµРЅРёРµ С„РѕРЅР° С‡РµСЂРµР· С‚РµРіРё INK
+            if (currentStory.currentTags.Count > 0)
+            {
+                foreach (string tag in currentStory.currentTags)
+                {
+                    if (tag.StartsWith("BG_"))
+                    {
+                        string bgIndexStr = tag.Replace("BG_", "");
+                        if (int.TryParse(bgIndexStr, out int newBgIndex))
+                        {
+                            StartCoroutine(ChangeBackground(newBgIndex));
+                        }
+                    }
+                }
+            }
+
+            // РћСЃС‚Р°Р»СЊРЅРѕР№ РєРѕРґ ContinueStory()
+            if (currentStory.variablesState["characterName"] != null)
+            {
+                nameText.text = (string)currentStory.variablesState["characterName"];
+            }
+
+            StartCoroutine(TypeText(text));
+
+            if (currentStory.currentChoices.Count > 0)
+            {
+                StartCoroutine(ShowChoices());
+            }
+        }
+        else
+        {
+            Debug.Log("End of story");
+            SceneManager.LoadScene(2);
+        }
+    }
+
+    IEnumerator TypeText(string text)
     {
         isTyping = true;
-        currentText = ""; // Начинаем с пустого текста
-        textComponent.text = currentText; // Обновляем TextMeshPro Text
+        dialogueText.text = "";
 
-        // Проходимся по каждому символу в fullText
-        for (int i = 0; i < fullText.Length; i++)
+        foreach (char c in text)
         {
-            currentText += fullText[i]; // Добавляем текущий символ к отображаемому тексту
-            textComponent.text = currentText; // Обновляем TextMeshPro Text
-            yield return new WaitForSeconds(typeSpeed); // Ждем указанное время
+            dialogueText.text += c;
+            yield return new WaitForSeconds(typeSpeed);
         }
 
-        isTyping = false; // Устанавливаем флаг, что вывод текста завершен
+        isTyping = false;
     }
 
-    // (Необязательно) Функция для мгновенного завершения вывода текста при нажатии кнопки
-    public void SkipTyping()
+    IEnumerator ShowChoices()
     {
-        if (isTyping)
+        isChoosing = true;
+        choiceButtonPanel.SetActive(true);
+
+        // РћС‡РёСЃС‚РєР° СЃС‚Р°СЂС‹С… РєРЅРѕРїРѕРє
+        foreach (Transform child in choiceButtonPanel.transform)
         {
-            StopCoroutine(TypeText()); // Останавливаем корутину TypeText
-            textComponent.text = fullText; // Отображаем весь текст сразу
-            isTyping = false;
+            Destroy(child.gameObject);
         }
+
+        // РЎРѕР·РґР°РЅРёРµ РЅРѕРІС‹С… РєРЅРѕРїРѕРє
+        for (int i = 0; i < currentStory.currentChoices.Count; i++)
+        {
+            Choice choice = currentStory.currentChoices[i];
+            Button button = Instantiate(choiceButtonPrefab, choiceButtonPanel.transform);
+
+            // РќР°СЃС‚СЂРѕР№РєР° С‚РµРєСЃС‚Р°
+            TMP_Text buttonText = button.GetComponentInChildren<TMP_Text>();
+            if (buttonText != null)
+            {
+                buttonText.text = choice.text;
+            }
+            else
+            {
+                Debug.LogError("No TMP_Text component in button prefab!");
+            }
+
+            // РќР°СЃС‚СЂРѕР№РєР° РѕР±СЂР°Р±РѕС‚С‡РёРєР° РєР»РёРєР°
+            int choiceIndex = i;
+            button.onClick.RemoveAllListeners(); // РћС‡РёС‰Р°РµРј СЃС‚Р°СЂС‹Рµ РѕР±СЂР°Р±РѕС‚С‡РёРєРё
+            button.onClick.AddListener(() => StartCoroutine(MakeChoiceCoroutine(choiceIndex)));
+        }
+
+        yield return null;
+    }
+
+    IEnumerator MakeChoiceCoroutine(int choiceIndex)
+    {
+        // Р’С‹Р±РёСЂР°РµРј РІР°СЂРёР°РЅС‚
+        currentStory.ChooseChoiceIndex(choiceIndex);
+
+        // РЎРєСЂС‹РІР°РµРј РїР°РЅРµР»СЊ РІС‹Р±РѕСЂР°
+        choiceButtonPanel.SetActive(false);
+        isChoosing = false;
+
+        // РџСЂРѕРґРѕР»Р¶Р°РµРј РёСЃС‚РѕСЂРёСЋ
+        ContinueStory();
+        yield return null;
     }
 }

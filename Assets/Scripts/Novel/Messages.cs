@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class SequenceController : MonoBehaviour
 {
+    public GameObject dialoguePanel; // Панель диалогов (из Dialogues)
+    public GameObject choiceButtonPanel; // Панель кнопок (из Dialogues)
     public GameObject firstGameObject;
     public GameObject secondGameObject;
     public GameObject thirdGameObject;
@@ -56,7 +58,17 @@ public class SequenceController : MonoBehaviour
 
         // Когда кнопка нажата, закрываем панель
         panelToClose.SetActive(false);
-        textBlockToShow.SetActive(true);
+
+        // Активируем панель диалогов и кнопок
+        if (dialoguePanel != null && choiceButtonPanel != null)
+        {
+            dialoguePanel.SetActive(true);
+            choiceButtonPanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("Не назначены dialoguePanel или choiceButtonPanel!");
+        }
 
         waitingForInput = false;
         Debug.Log("Последовательность завершена.");
